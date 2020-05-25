@@ -21,13 +21,15 @@ amqp.connect('amqp://localhost', function(error, connection) {
     channel.consume(queue, message => {
       // console.log(message)
       console.log(queue, 'START')
-
+      
       let i = 2e9
       while(--i) {}
 
+      channel.ack(message)
+
       console.log(" [x] Received %s", message.content.toString())
     }, {
-      noAck: true
+      noAck: false
     })
   })
 })
