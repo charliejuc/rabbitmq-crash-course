@@ -1,37 +1,52 @@
 'use strict'
 
-const amqp = require('amqplib/callback_api')
+const amqp = require('amqplib')
 const queue = process.env.QUEUE || 'hello'
 
-amqp.connect('amqp://localhost', function(error, connection) {
-  if (error) {  
-    throw error
+const baseWait = 200
+const messagesAmount = 6
+
+function waitLongerEveryLoopCycle(number, cb) {
+  const max = number
+
+  while(number--) {
+    let wait = baseWait * (max - number) // take longer with the last few messages
+
+    setTimeout(cb, wait)
   }
-  console.log('CONNECTED')
+}
 
-  connection.createChannel(function(error, channel) {
-    if (error) {
-      throw error
-    }
+function exitAfterSend() {
+  setTimeout(() => {
+    process.exit(0)
+  }, messagesAmount * baseWait * 1.2)
+}
 
-    // channel.deleteQueue(queue, {}, console.log)
+async function amqpPublish() {
+  const connection = await amqp.connect('amqp://localhost')
+  const channel = await connection.createChannel()
 
-    channel.assertQueue(queue, {
-      durable: false
-    })
+  channel.assertQueue(queue)
 
-    const max = 10
-    let i = max
+  waitLongerEveryLoopCycle(messagesAmount, () => {
+    let message = {
+      id: Math.random().toString(32).slice(2, 6),
+      message: 'Hello world!'
+    } 
+    let sent = channel.sendToQueue(queue, Buffer.from(
+      JSON.stringify(message)
+    ))
 
-    while(i--) {
-      setTimeout(() => {
-        let message = 'Test world! ' + Math.random().toString(32).slice(2)
-        
-        channel.sendToQueue(queue, Buffer.from(message))
-
-        console.log(" [x] Sent %s", message)
-      }, 200 * (max - i + 1))
-    }
-    
+    sent ?
+      console.log(`Sent message to "${queue}" queue`, message) :
+      console.log(`Fails sending message to "${queue}" queue`, message)
   })
-})
+
+  exitAfterSend()
+}
+
+amqpPublish()
+  .catch(error => {
+    console.error(error)
+    process.exit(1)
+  })

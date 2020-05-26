@@ -1,35 +1,35 @@
 'use strict'
 
-const amqp = require('amqplib/callback_api')
+const amqp = require('amqplib')
 const queue = process.env.QUEUE || 'hello'
 
-amqp.connect('amqp://localhost', function(error, connection) {
-  if (error) {  
-    throw error
-  }
-  console.log('CONNECTED')
+function intensiveOperation() {
+  let i = 1e9
+  while(i--) {}
+}
 
-  connection.createChannel(function(error, channel) {
-    if (error) {
-      throw error
-    }
+async function amqpPublish() {
+  const connection = await amqp.connect('amqp://localhost')
+  const channel = await connection.createChannel()
 
-    channel.assertQueue(queue, {
-      durable: false
-    })
+  channel.assertQueue(queue)
 
-    channel.consume(queue, message => {
-      // console.log(message)
-      console.log(queue, 'START')
-      
-      let i = 2e9
-      while(--i) {}
+  channel.consume(queue, message => {
+    const content = JSON.parse(message.content)
 
-      channel.ack(message)
+    intensiveOperation()
 
-      console.log(" [x] Received %s", message.content.toString())
-    }, {
-      noAck: false
-    })
+    console.log(`Received message from "${queue}" queue`, content.id)
+    console.log(content)
+
+    channel.ack(message)
+  }, {
+    // noAck: true
   })
-})
+}
+
+amqpPublish()
+  .catch(error => {
+    console.error(error)
+    process.exit(1)
+  })
