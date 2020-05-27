@@ -8,27 +8,25 @@ function intensiveOperation() {
   while(i--) {}
 }
 
-async function amqpPublish() {
+async function subscriber () {
   const connection = await amqp.connect('amqp://localhost')
   const channel = await connection.createChannel()
 
-  channel.assertQueue(queue)
+  await channel.assertQueue(queue)
 
   channel.consume(queue, message => {
-    const content = JSON.parse(message.content)
+    const content = JSON.parse(message.content.toString())
 
     intensiveOperation()
 
-    console.log(`Received message from "${queue}" queue`, content.id)
+    console.log(`Received message from "${queue}" queue`)
     console.log(content)
 
     channel.ack(message)
-  }, {
-    // noAck: true
   })
 }
 
-amqpPublish()
+subscriber()
   .catch(error => {
     console.error(error)
     process.exit(1)
