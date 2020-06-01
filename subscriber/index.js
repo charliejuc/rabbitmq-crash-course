@@ -4,30 +4,29 @@ const amqp = require('amqplib')
 const queue = process.env.QUEUE || 'hello'
 
 function intensiveOperation() {
-  let i = 1e9
-  while(i--) {}
+    let i = 1e9
+    while (i--) {}
 }
 
-async function subscriber () {
-  const connection = await amqp.connect('amqp://localhost')
-  const channel = await connection.createChannel()
+async function subscriber() {
+    const connection = await amqp.connect('amqp://localhost')
+    const channel = await connection.createChannel()
 
-  await channel.assertQueue(queue)
+    await channel.assertQueue(queue)
 
-  channel.consume(queue, message => {
-    const content = JSON.parse(message.content.toString())
+    channel.consume(queue, (message) => {
+        const content = JSON.parse(message.content.toString())
 
-    intensiveOperation()
+        intensiveOperation()
 
-    console.log(`Received message from "${queue}" queue`)
-    console.log(content)
+        console.log(`Received message from "${queue}" queue`)
+        console.log(content)
 
-    channel.ack(message)
-  })
+        channel.ack(message)
+    })
 }
 
-subscriber()
-  .catch(error => {
+subscriber().catch((error) => {
     console.error(error)
     process.exit(1)
-  })
+})
