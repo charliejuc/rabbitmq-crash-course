@@ -26,7 +26,7 @@ async function exitAfterSend() {
     process.exit(0)
 }
 
-async function subscriber() {
+async function publisher() {
     const connection = await amqp.connect('amqp://localhost')
     const channel = await connection.createChannel()
 
@@ -52,7 +52,7 @@ async function subscriber() {
     })
 }
 
-subscriber().catch((error) => {
+publisher().catch((error) => {
     console.error(error)
     process.exit(1)
 })
