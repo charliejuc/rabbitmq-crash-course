@@ -2,6 +2,15 @@
 
 const amqp = require('amqplib')
 const queue = process.env.QUEUE || 'hello'
+const exchangeName = process.env.EXCHANGE || 'my-topic'
+const exchangeType = 'topic'
+const pattern = process.env.PATTERN || ''
+
+console.log({
+    queue,
+    exchangeName,
+    pattern
+})
 
 function intensiveOperation() {
     let i = 1e3
@@ -13,6 +22,10 @@ async function subscriber() {
     const channel = await connection.createChannel()
 
     await channel.assertQueue(queue)
+
+    await channel.assertExchange(exchangeName, exchangeType)
+
+    await channel.bindQueue(queue, exchangeName, pattern)
 
     channel.consume(queue, (message) => {
         const content = JSON.parse(message.content.toString())
